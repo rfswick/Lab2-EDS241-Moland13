@@ -81,6 +81,17 @@ Create a table with total CPUE for each year and region
 ```{r}
 
 tbl_2way <- lob_data %>%
+    group_by(year, region) %>% 
+    summarize(
+        total_cpue = sum(cpue, na.rm = TRUE),
+        .groups = "drop" # same as ungroup()
+    ) %>% 
+    pivot_wider(
+        names_from = region,
+        values_from = total_cpue
+    ) %>% 
+    arrange(year) %>% 
+    adorn_totals("row")
 
     
 ```
@@ -89,17 +100,18 @@ Customize table using gt
 ```{r}
 
 tbl_2way %>% 
+    gt(rowname_col = "year") %>% 
+    tab_header(
+        title = "Total CPUE by Region and Year",
+        subtitle = "Total catch per unit effort by year and region" 
+    ) %>% 
+    cols_label(
+       bol = "Bolærne",
+       flo = "Kvernskjær",
+       kve = "Flødevigen"
+    ) %>% 
+    gt::tab_source_note("Source: Moland et al., 2013")
 
-
-
-# title = "Total CPUE by Region and Year",
-# subtitle = "Total catch per unit effort by year and region" 
-# 
-# bol = "Bolærne"
-# flo = "Kvernskjær"
-# kve = "Flødevigen"
-#   
-# "Source: Moland et al., 2013"
 
 ```
 
@@ -114,6 +126,15 @@ say("Create more tables we must", "yoda")
 Wrange data for 3-way table
 ```{r}
 tbl_3way <- lob_data %>%
+    group_by(year, region, treat) %>% 
+    summarize(
+        total_cpue = sum(cpue, na.rm = TRUE)) %>% 
+    pivot_wider(
+        names_from = c(region, treat),
+        values_from = total_cpue
+    ) %>% 
+    arrange(year) %>% 
+    ungroup()
 
 ```
 
@@ -121,35 +142,41 @@ Customize table using {`gt`}
 ```{r}
 
 tbl_3way %>%
+    gt(rowname_col = "year") %>% 
+    tab_header(
+        title = "Total CPUE by Region, Treatment, and Year",
+        subtitle = "Aggregated totals of CPUE by year for each region and treatment"
+    ) %>% 
+    tab_spanner(
+        label = "Bolærne",
+        columns = c("bol_con", "bol_mpa")
+    ) %>% 
+     tab_spanner(
+         label = "Flødevigen",
+         columns = c("flo_con", "flo_mpa")
+    ) %>% 
+     tab_spanner(
+        label = "Kvernskjær",
+        columns = c("kve_con", "kve_mpa")
+    ) %>% 
+    cols_label(
+        bol_con = "Control",
+        bol_mpa = "MPA",
+        flo_con = "Control",
+        flo_mpa = "MPA",
+        kve_con = "Control",
+        kve_mpa = "MPA") %>% 
+    data_color(
+        columns = c("bol_con", "flo_con", "kve_con"),
+        colors = scales::col_numeric(
+          palette = c("blue"),
+          domain = NULL)) %>%
+    data_color(
+        columns = c("bol_mpa", "flo_mpa", "kve_mpa"),
+        colors = scales::col_numeric(
+          palette = c("red"),
+          domain = NULL))
 
-
-
-  # title = "Total CPUE by Region, Treatment, and Year",
-  # subtitle = "Aggregated totals of CPUE by year for each region and treatment"
-  # label = "Bolærne",
-  # columns = c("bol_con", "bol_mpa")
-  # label = "Flødevigen",
-  # columns = c("flo_con", "flo_mpa")
-  # label = "Kvernskjær",
-  # columns = c("kve_con", "kve_mpa")
-
-  # cols_label(
-  #   bol_con = "Control",
-  #   bol_mpa = "MPA",
-  #   flo_con = "Control",
-  #   flo_mpa = "MPA",
-  #   kve_con = "Control",
-  #   kve_mpa = "MPA") %>% 
-  # data_color(
-  #   columns = c("bol_con", "flo_con", "kve_con"),
-  #   colors = scales::col_numeric(
-  #     palette = c("blue"),
-  #     domain = NULL)) %>% 
-  # data_color(
-  #   columns = c("bol_mpa", "flo_mpa", "kve_mpa"),
-  #   colors = scales::col_numeric(
-  #     palette = c("red"),
-  #     domain = NULL))
 ```
 
 ```{r}
@@ -172,15 +199,29 @@ lob_size <- read_csv(here("data", "moland13_lobstersize.csv")) %>%
 
 Create plot 
 ```{r}
+library(ggridges)
+library(ggthemes)
 
 lob_size %>% 
+    ggplot(aes(x = size, y = region, fill = region)) +
+    labs(
+        title = "European Lobster Size: Total Length",
+        subtitle = "Data from Moland et al., 2013",
+        caption = "Total Length (mm)"
+    ) +
+    geom_density_ridges(
+        alpha = .9
+    ) +
+    facet_wrap(~treat) +
+    scale_fill_wsj() +
+    theme(
+        legend.position = "none",
+        plot.title = element_text(size = 16),
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(size = 12),
+        strip.text = element_text(size = 12, face = "bold", family = "mono"
+    ))
 
-    
-  # legend.position = "none",
-  # plot.title = element_text(size = 16),
-  # plot.subtitle = element_text(size = 12),
-  # plot.caption = element_text(size = 12),
-  # strip.text = element_text(size = 12, face = "bold", family = "mono"
 ```
 
 Save plot figure
@@ -234,7 +275,7 @@ praise_parts
 ------------------------------------------------------------------------
 
 ```{r}
-say("That's all folks!", "egret") 
+say("That's all folks!", "pig") 
 ```
 
 ------------------------------------------------------------------------
